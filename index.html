@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>MISSION 2026 // Vision Board Control</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101114">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mission 2026">
+<style>
+  :root{
+    --bg:#101114;
+    --panel:#1a1c21;
+    --panel2:#212429;
+    --line:#2c2f36;
+    --line-soft:#23262c;
+    --text:#eeece6;
+    --muted:#8b8f97;
+    --muted2:#5f636b;
+    --red:#ff4433;
+    --red-dim:#4a1712;
+    --amber:#ffb020;
+    --amber-dim:#4a3510;
+    --green:#34d399;
+    --green-dim:#0f3a2c;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font);}
+  body{padding-bottom:72px; min-height:100vh;}
+  h1,h2,h3{margin:0;font-weight:800;}
+  button{font-family:inherit;}
+  input,select{font-family:inherit;}
+  ::selection{background:var(--red);color:#fff;}
+
+  /* ---------- HEADER / MISSION CLOCK ---------- */
+  #missionHeader{
+    background:linear-gradient(180deg,#17181b, #101114 90%);
+    border-bottom:1px solid var(--line);
+    padding:14px 16px 16px;
+    position:sticky; top:0; z-index:50;
+  }
+  .hstrip{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(255,68,51,.6); animation:pulse 1.6s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,68,51,.55);}
+    70%{box-shadow:0 0 0 8px rgba(255,68,51,0);}
+    100%{box-shadow:0 0 0 0 rgba(255,68,51,0);}
+  }
+  .hstrip span{font-size:11px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase;}
+  .hstrip strong{color:var(--red);}
+  .clockrow{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .clocktitle{font-size:15px; color:var(--muted); font-weight:600;}
+  .clocktitle b{color:var(--text);}
+  .countdown{display:flex; gap:10px;}
+  .cbox{text-align:center;}
+  .cbox .num{font-family:var(--mono); font-size:26px; font-weight:700; color:var(--text); line-height:1;}
+  .cbox .lab{font-size:9px; color:var(--muted2); letter-spacing:.1em; margin-top:2px;}
+  .yearbar{height:5px; border-radius:3px; background:var(--line-soft); margin-top:12px; overflow:hidden;}
+  .yearbar i{display:block; height:100%; background:linear-gradient(90deg,var(--amber),var(--red)); border-radius:3px;}
+  .yearbar-lab{display:flex; justify-content:space-between; font-size:10px; color:var(--muted2); margin-top:4px; font-family:var(--mono);}
+
+  /* ---------- TABS (bottom, app-like) ---------- */
+  #tabs{
+    position:fixed; bottom:0; left:0; right:0; z-index:60;
+    display:flex; background:#151619; border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .tabbtn{
+    flex:1; background:none; border:none; color:var(--muted2); padding:10px 4px 8px;
+    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+  }
+  .tabbtn .ic{width:20px;height:20px;}
+  .tabbtn .tl{font-size:10px; letter-spacing:.03em; font-weight:600;}
+  .tabbtn.active{color:var(--red);}
+  .tabbtn .statusdot{width:5px;height:5px;border-radius:50%;position:relative; top:-14px; left:11px;}
+
+  /* ---------- MAIN / PANELS ---------- */
+  main{padding:16px; max-width:760px; margin:0 auto;}
+  .panel{display:none;}
+  .panel.active{display:block; animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .sectionhead{display:flex; align-items:center; justify-content:space-between; margin:22px 0 10px;}
+  .sectionhead:first-child{margin-top:4px;}
+  .sectionhead h2{font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+  .headctrl{display:flex; align-items:center; gap:10px;}
+  .donecheck{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); cursor:pointer; user-select:none;}
+  .donecheck input{display:none;}
+  .donecheck .ctick{width:17px; height:17px; flex-shrink:0; border:1.5px solid var(--line); border-radius:5px; display:inline-flex; align-items:center; justify-content:center; background:var(--panel2);}
+  .donecheck input:checked + .ctick{background:var(--green); border-color:var(--green);}
+  .donecheck input:checked + .ctick::after{content:"✓"; color:#0b0b0b; font-size:12px; font-weight:900; line-height:1;}
+  .statuspill{font-size:10px; font-weight:700; letter-spacing:.06em; padding:3px 8px; border-radius:20px; text-transform:uppercase;}
+  .st-green{background:var(--green-dim); color:var(--green);}
+  .st-amber{background:var(--amber-dim); color:var(--amber);}
+  .st-red{background:var(--red-dim); color:var(--red);}
+
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:12px;}
+  .card.tight{padding:12px 14px;}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  @media(min-width:640px){ .grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;} }
+
+  .stat{background:var(--panel2); border:1px solid var(--line-soft); border-radius:8px; padding:10px 12px;}
+  .stat .v{font-family:var(--mono); font-size:20px; font-weight:700;}
+  .stat .l{font-size:10px; color:var(--muted); margin-top:2px; letter-spacing:.03em;}
+
+  label{display:block; font-size:11px; color:var(--muted); margin-bottom:4px; letter-spacing:.02em;}
+  input[type=number], input[type=date], input[type=text]{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:9px 10px; font-size:14px; margin-bottom:10px;
+  }
+  input:focus, button:focus, select:focus{outline:2px solid var(--red); outline-offset:1px;}
+  .row{display:flex; gap:10px;}
+  .row > *{flex:1;}
+
+  .btn{
+    background:var(--red); color:#fff; border:none; border-radius:7px; padding:11px 14px;
+    font-weight:700; font-size:13px; letter-spacing:.03em; cursor:pointer; width:100%;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+  .btn.small{width:auto; padding:7px 12px; font-size:12px;}
+
+  .toggle{display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;}
+  .toggle .box{width:38px; height:22px; border-radius:20px; background:var(--panel2); border:1px solid var(--line); position:relative; transition:.15s;}
+  .toggle .box i{position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--muted); transition:.15s;}
+  .toggle input{display:none;}
+  .toggle input:checked + .box{background:var(--green-dim); border-color:var(--green);}
+  .toggle input:checked + .box i{left:18px; background:var(--green);}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th{text-align:left; color:var(--muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; padding:6px 6px; border-bottom:1px solid var(--line);}
+  td{padding:8px 6px; border-bottom:1px solid var(--line-soft); font-family:var(--mono);}
+  tr:last-child td{border-bottom:none;}
+  .tablewrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .delbtn{background:none; border:none; color:var(--muted2); cursor:pointer; font-size:15px; padding:2px 6px;}
+  .delbtn:active{color:var(--red);}
+  .empty{color:var(--muted2); font-size:12.5px; padding:8px 2px;}
+
+  .weekdots{display:flex; gap:6px; margin-top:8px;}
+  .wd{flex:1; height:30px; border-radius:6px; background:var(--panel2); border:1px solid var(--line-soft); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--muted2); font-weight:700;}
+  .wd.hit{background:var(--green-dim); border-color:var(--green); color:var(--green);}
+  .wd.today{box-shadow:inset 0 0 0 1px var(--amber);}
+
+  .barlist{display:flex; flex-direction:column; gap:8px; margin-top:6px;}
+  .bar-row{display:flex; align-items:center; gap:8px;}
+  .bar-row .lbl{width:56px; font-size:11px; color:var(--muted); font-family:var(--mono); flex-shrink:0;}
+  .bar-track{flex:1; height:14px; background:var(--panel2); border-radius:4px; overflow:hidden; position:relative;}
+  .bar-fill{height:100%; border-radius:4px;}
+  .bar-row .val{width:42px; text-align:right; font-size:11px; font-family:var(--mono); color:var(--muted); flex-shrink:0;}
+
+  .progress-outer{height:10px; background:var(--panel2); border-radius:6px; overflow:hidden; margin:8px 0;}
+  .progress-inner{height:100%; border-radius:6px; background:linear-gradient(90deg,var(--amber),var(--green));}
+
+  .vision-strip{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:4px;}
+  .vchip{flex-shrink:0; background:var(--green-dim); border:1px solid var(--green); color:var(--green); font-size:11.5px; font-weight:700; padding:7px 12px; border-radius:20px; display:flex; align-items:center; gap:6px; text-decoration:line-through; text-decoration-color:rgba(52,211,153,.5);}
+
+  .ring-wrap{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:4px;}
+  @media(min-width:520px){ .ring-wrap{grid-template-columns:repeat(4,1fr);} }
+  .ring-card{background:var(--panel2); border:1px solid var(--line-soft); border-radius:10px; padding:12px; text-align:center;}
+  .ring-card .pct{font-family:var(--mono); font-size:22px; font-weight:700;}
+  .ring-card .nm{font-size:10.5px; color:var(--muted); margin-top:4px; letter-spacing:.02em;}
+
+  .hint{font-size:11.5px; color:var(--muted2); margin-top:2px; line-height:1.5;}
+  .divider{height:1px; background:var(--line); margin:14px 0;}
+
+  footer{max-width:760px; margin:24px auto 0; padding:0 16px 8px;}
+  .backupbtns{display:flex; gap:8px;}
+  textarea#backupArea{width:100%; min-height:90px; background:var(--panel2); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:8px; font-family:var(--mono); font-size:11px; margin-top:8px; display:none;}
+
+  svg text{font-family:var(--mono);}
+  #storageWarning{display:none; background:var(--red-dim); border-bottom:1px solid var(--red); color:#ffb3ab; font-size:12px; padding:10px 16px; line-height:1.5;}
+  #storageWarning b{color:#fff;}
+</style>
+</head>
+<body>
+
+<div id="storageWarning"><b>Saving is blocked in this browser right now.</b> Your logs won't be kept after you close this tab. Use "Show backup code" at the bottom to copy your data before closing, or open this app from a hosted link instead of a downloaded file.</div>
+
+<header id="missionHeader">
+  <div class="hstrip"><div class="dot"></div><span>MISSION ACTIVE — TARGET LOCK <strong>31 DEC 2026</strong></span></div>
+  <div class="clockrow">
+    <div class="clocktitle">Time left to close every open goal:</div>
+  </div>
+  <div class="countdown" id="countdown">
+    <div class="cbox"><div class="num" id="cd-d">--</div><div class="lab">Days</div></div>
+    <div class="cbox"><div class="num" id="cd-h">--</div><div class="lab">Hrs</div></div>
+    <div class="cbox"><div class="num" id="cd-m">--</div><div class="lab">Min</div></div>
+    <div class="cbox"><div class="num" id="cd-s">--</div><div class="lab">Sec</div></div>
+  </div>
+  <div class="yearbar"><i id="yearbarfill" style="width:0%"></i></div>
+  <div class="yearbar-lab"><span id="yearpct">0% of 2026 gone</span><span id="weekleft">-- weeks left</span></div>
+</header>
+
+<main>
+
+  <!-- ================= OVERVIEW ================= -->
+  <section class="panel active" id="panel-overview">
+    <div class="sectionhead"><h2>Vision Board Status</h2></div>
+    <div class="card tight">
+      <label style="margin-bottom:8px;">Already closed out</label>
+      <div class="vision-strip">
+        <div class="vchip">✓ Hair coloured</div>
+        <div class="vchip">✓ Bought gold</div>
+        <div class="vchip">✓ Travelled more</div>
+        <span id="visionStripExtra" style="display:contents;"></span>
+      </div>
+      <div class="hint">4 goals still open. Everything below has its own live tracker.</div>
+    </div>
+
+    <div class="sectionhead"><h2>Open Goals — Live Progress</h2></div>
+    <div class="ring-wrap" id="overviewRings"></div>
+
+    <div class="sectionhead"><h2>This Week At A Glance</h2></div>
+    <div class="card">
+      <div class="grid2" id="overviewWeek"></div>
+    </div>
+
+    <div class="hint" style="text-align:center; margin-top:6px;">Tap a tab below to log today's numbers.</div>
+  </section>
+
+  <!-- ================= SHAPE ================= -->
+  <section class="panel" id="panel-shape">
+    <div class="sectionhead">
+      <h2>Get In Shape</h2>
+      <div class="headctrl">
+        <label class="donecheck"><input type="checkbox" id="shape-done"><span class="ctick"></span>Mark done</label>
+        <span class="statuspill" id="shapeStatus">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Log today</label>
+      <div class="row">
+        <div><label>Date</label><input type="date" id="s-date"></div>
+        <div><label>Gym today?</label>
+          <label class="toggle" style="margin-top:10px;">
+            <input type="checkbox" id="s-gym"><div class="box"><i></i></div>
+            <span style="font-size:12.5px; color:var(--muted);" id="s-gym-lab">No</span>
+          </label>
+        </div>
+      </div>
+      <div class="row">
+        <div><label>Calories</label><input type="number" id="s-cal" placeholder="e.g. 1800" min="0"></div>
+        <div><label>Protein (g)</label><input type="number" id="s-protein" placeholder="e.g. 90" min="0"></div>
+      </div>
+      <label>Steps</label>
+      <input type="number" id="s-steps" placeholder="e.g. 8000" min="0">
+      <button class="btn" id="s-add">Save Today's Log</button>
+    </div>
+
+    <div class="sectionhead"><h2>Gym Week (target: 5 / 7 days)</h2></div>
+    <div class="card tight">
+      <div class="weekdots" id="gymWeekDots"></div>
+      <div class="hint" id="gymWeekHint"></div>
+    </div>
+
+    <div class="sectionhead"><h2>Weekly Steps Target</h2></div>
+    <div class="card tight">
+      <div class="row" style="align-items:flex-end;">
+        <div><label>Target steps / week</label><input type="number" id="s-stepstarget" min="0" placeholder="e.g. 50000"></div>
+        <div style="flex:0 0 auto;"><button class="btn small" id="s-savetarget">Save</button></div>
+      </div>
+      <div class="grid2" style="margin-top:2px;">
+        <div class="stat"><div class="v" id="stepsWeekTotal">0</div><div class="l">Steps this week</div></div>
+        <div class="stat"><div class="v" id="stepsWeekPct">0%</div><div class="l">Of weekly target</div></div>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="stepsProgress" style="width:0%"></div></div>
+      <div class="hint" id="stepsHint"></div>
+    </div>
+
+    <div class="sectionhead"><h2>Last 14 Days — Calories vs Protein</h2></div>
+    <div class="card tight"><div id="shapeLineChart"></div></div>
+
+    <div class="sectionhead"><h2>Last 14 Days — Steps</h2></div>
+    <div class="card tight"><div id="shapeStepsChart"></div></div>
+
+    <div class="sectionhead"><h2>Log Book</h2></div>
+    <div class="card tight">
+      <div class="tablewrap"><table id="shapeTable"><thead>
+        <tr><th>Date</th><th>Gym</th><th>Cal</th><th>Protein</th><th>Steps</th><th></th></tr>
+      </thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ================= MODEL ================= -->
+  <section class="panel" id="panel-model">
+    <div class="sectionhead">
+      <h2>Modelling / Runway</h2>
+      <div class="headctrl">
+        <label class="donecheck"><input type="checkbox" id="model-done"><span class="ctick"></span>Mark done</label>
+        <span class="statuspill" id="modelStatus">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Log a posted shoot (target: 2 posts / week)</label>
+      <div class="row">
+        <div><label>Date posted</label><input type="date" id="m-date"></div>
+      </div>
+      <label>Caption / note (optional)</label>
+      <input type="text" id="m-note" placeholder="e.g. rooftop editorial set">
+      <button class="btn" id="m-add">Log Instagram Post</button>
+    </div>
+
+    <div class="sectionhead"><h2>This Week</h2></div>
+    <div class="card tight">
+      <div class="grid2">
+        <div class="stat"><div class="v" id="modelWeekCount">0 / 2</div><div class="l">Posts this week</div></div>
+        <div class="stat"><div class="v" id="modelWeekLeft">—</div><div class="l">Days left in week</div></div>
+      </div>
+    </div>
+
+    <div class="sectionhead"><h2>Weekly Track Record</h2></div>
+    <div class="card tight"><div class="barlist" id="modelWeekBars"></div></div>
+
+    <div class="sectionhead"><h2>Post Log</h2></div>
+    <div class="card tight">
+      <div class="tablewrap"><table id="modelTable"><thead>
+        <tr><th>Date</th><th>Note</th><th></th></tr>
+      </thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ================= SWIM ================= -->
+  <section class="panel" id="panel-swim">
+    <div class="sectionhead">
+      <h2>Learn To Swim</h2>
+      <div class="headctrl">
+        <label class="donecheck"><input type="checkbox" id="swim-done"><span class="ctick"></span>Mark done</label>
+        <span class="statuspill" id="swimStatus">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label class="toggle" id="swimToggleWrap">
+        <input type="checkbox" id="sw-active"><div class="box"><i></i></div>
+        <span id="sw-active-lab" style="font-size:13px;">Membership not taken yet</span>
+      </label>
+      <div id="swimDateWrap" style="margin-top:12px; display:none;">
+        <label>Membership start date</label>
+        <input type="date" id="sw-date">
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Log a class attended</label>
+      <div class="row">
+        <div><label>Date</label><input type="date" id="sw-classdate"></div>
+      </div>
+      <button class="btn" id="sw-add">Log Swim Class</button>
+    </div>
+
+    <div class="grid2">
+      <div class="stat"><div class="v" id="swimTotal">0</div><div class="l">Total classes logged</div></div>
+      <div class="stat"><div class="v" id="swimWeek">0</div><div class="l">Classes this week</div></div>
+    </div>
+
+    <div class="sectionhead"><h2>Class Log</h2></div>
+    <div class="card tight">
+      <div class="tablewrap"><table id="swimTable"><thead>
+        <tr><th>Date</th><th></th></tr>
+      </thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ================= BED ================= -->
+  <section class="panel" id="panel-bed">
+    <div class="sectionhead">
+      <h2>Buy The Bed</h2>
+      <div class="headctrl">
+        <label class="donecheck"><input type="checkbox" id="bed-done"><span class="ctick"></span>Mark done</label>
+        <span class="statuspill" id="bedStatus">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Total cost of the bed (₹)</label>
+      <input type="number" id="b-total" placeholder="e.g. 45000" min="0">
+      <button class="btn ghost" id="b-savetotal">Save Total Cost</button>
+    </div>
+
+    <div class="card">
+      <label class="toggle" id="emiToggleWrap">
+        <input type="checkbox" id="b-emi"><div class="box"><i></i></div>
+        <span id="b-emi-lab" style="font-size:13px;">Paying upfront (no EMI)</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <label id="b-paylabel">Log a payment</label>
+      <div class="row">
+        <div><label>Date</label><input type="date" id="b-date"></div>
+        <div><label>Amount (₹)</label><input type="number" id="b-amount" placeholder="0" min="0"></div>
+      </div>
+      <button class="btn" id="b-add">Add Payment</button>
+    </div>
+
+    <div class="card tight">
+      <div class="grid3">
+        <div class="stat"><div class="v" id="bedTotal">₹0</div><div class="l">Total</div></div>
+        <div class="stat"><div class="v" id="bedPaid">₹0</div><div class="l">Paid</div></div>
+        <div class="stat"><div class="v" id="bedLeft">₹0</div><div class="l">Remaining</div></div>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="bedProgress" style="width:0%"></div></div>
+      <div class="hint" id="bedProgressLab">0% paid off</div>
+    </div>
+
+    <div class="sectionhead"><h2>Payment Log</h2></div>
+    <div class="card tight">
+      <div class="tablewrap"><table id="bedTable"><thead>
+        <tr><th>Date</th><th>Amount</th><th></th></tr>
+      </thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="card tight">
+    <label style="margin-bottom:8px;">Backup your data</label>
+    <div class="backupbtns">
+      <button class="btn ghost small" id="btnExport">Show backup code</button>
+      <button class="btn ghost small" id="btnImport">Restore from code</button>
+      <button class="btn ghost small" id="btnReset">Reset all data</button>
+    </div>
+    <textarea id="backupArea" placeholder="Backup code appears here. To restore, paste your saved code and tap Restore."></textarea>
+    <div class="hint">Everything is stored only on this device/browser. Use backup before clearing browser data or switching phones.</div>
+  </div>
+</footer>
+
+<nav id="tabs">
+  <button class="tabbtn active" data-tab="overview"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span class="tl">Overview</span></button>
+  <button class="tabbtn" data-tab="shape"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7v10M18 7v10M2 10v4M22 10v4M6 12h12"/></svg><span class="tl">Shape</span><div class="statusdot" id="dot-shape"></div></button>
+  <button class="tabbtn" data-tab="model"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3"/><path d="M6 21c0-4 3-6 6-6s6 2 6 6"/></svg><span class="tl">Model</span><div class="statusdot" id="dot-model"></div></button>
+  <button class="tabbtn" data-tab="swim"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0M2 12c1.5 1.5 3 1.5 4.5 0s3-1.5 4.5 0 3 1.5 4.5 0 3-1.5 4.5 0M9 8l3-4 3 4"/></svg><span class="tl">Swim</span><div class="statusdot" id="dot-swim"></div></button>
+  <button class="tabbtn" data-tab="bed"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5M3 18v2M21 18v2M3 13V8a2 2 0 0 1 2-2h4v5M11 13V6"/></svg><span class="tl">Bed</span><div class="statusdot" id="dot-bed"></div></button>
+</nav>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- STORAGE ---------------- */
+  var STORE_KEY = "mission2026_v1";
+  var TARGET = new Date(2026, 11, 31, 23, 59, 59);
+  var YEAR_START = new Date(2026, 0, 1, 0, 0, 0);
+
+  function defaultState(){
+    return {
+      shape: { logs: {}, stepsTarget: 50000, done:false },   // date(YYYY-MM-DD) -> {gym,cal,protein,steps}
+      model: { posts: [], done:false },             // [{id,date,note}]
+      swim: { active:false, startDate:"", classes: [], done:false }, // classes: [{id,date}]
+      bed: { total:0, emi:false, payments: [], done:false } // [{id,date,amount}]
+    };
+  }
+  var state = load();
+  var storageOK = true;
+  var memoryFallback = null;
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return defaultState();
+      var parsed = JSON.parse(raw);
+      var d = defaultState();
+      return Object.assign(d, parsed, {
+        shape: Object.assign(d.shape, parsed.shape||{}),
+        model: Object.assign(d.model, parsed.model||{}),
+        swim: Object.assign(d.swim, parsed.swim||{}),
+        bed: Object.assign(d.bed, parsed.bed||{})
+      });
+    }catch(e){
+      storageOKFlag(false);
+      return memoryFallback || defaultState();
+    }
+  }
+  function save(){
+    try{
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+      storageOKFlag(true);
+    }catch(e){
+      memoryFallback = state;
+      storageOKFlag(false);
+    }
+  }
+  function storageOKFlag(ok){
+    storageOK = ok;
+    var el = document.getElementById("storageWarning");
+    if(el) el.style.display = ok ? "none" : "block";
+  }
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  /* ---------------- DATE HELPERS ---------------- */
+  function todayISO(){ return toISO(new Date()); }
+  function toISO(d){
+    var y=d.getFullYear(), m=("0"+(d.getMonth()+1)).slice(-2), day=("0"+d.getDate()).slice(-2);
+    return y+"-"+m+"-"+day;
+  }
+  function parseISO(s){ var p=s.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function startOfWeek(d){ // Monday-based
+    var dt = new Date(d); var day = dt.getDay(); var diff = (day===0?-6:1)-day;
+    dt.setDate(dt.getDate()+diff); dt.setHours(0,0,0,0); return dt;
+  }
+  function addDays(d,n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+  function fmtShort(iso){ var d=parseISO(iso); return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+  function inSameWeek(iso, weekStart){ var d=parseISO(iso); var ws=weekStart; var we=addDays(ws,7); return d>=ws && d<we; }
+
+  /* ---------------- COUNTDOWN ---------------- */
+  function tickCountdown(){
+    var now = new Date();
+    var diff = TARGET - now;
+    if(diff < 0) diff = 0;
+    var d = Math.floor(diff/86400000);
+    var h = Math.floor((diff%86400000)/3600000);
+    var m = Math.floor((diff%3600000)/60000);
+    var s = Math.floor((diff%60000)/1000);
+    document.getElementById("cd-d").textContent = d;
+    document.getElementById("cd-h").textContent = ("0"+h).slice(-2);
+    document.getElementById("cd-m").textContent = ("0"+m).slice(-2);
+    document.getElementById("cd-s").textContent = ("0"+s).slice(-2);
+
+    var yearTotal = TARGET - YEAR_START;
+    var yearGone = Math.min(Math.max(now - YEAR_START,0), yearTotal);
+    var pct = Math.round((yearGone/yearTotal)*100);
+    document.getElementById("yearbarfill").style.width = pct+"%";
+    document.getElementById("yearpct").textContent = pct+"% of the runway to Dec 31 used up";
+    document.getElementById("weekleft").textContent = Math.max(Math.ceil(d/7),0)+" weeks left";
+  }
+  tickCountdown(); setInterval(tickCountdown, 1000);
+
+  /* ---------------- TABS ---------------- */
+  var tabs = document.querySelectorAll(".tabbtn");
+  tabs.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      tabs.forEach(function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+      document.getElementById("panel-"+btn.dataset.tab).classList.add("active");
+      window.scrollTo({top:0, behavior:"instant" in window ? "instant":"auto"});
+    });
+  });
+
+  /* ---------------- SVG CHART HELPERS ---------------- */
+  function lineChart(seriesA, seriesB, labels, colorA, colorB, w, h){
+    // seriesA/B: arrays of numbers (same length), labels: array of strings
+    w = w||300; h = h||140;
+    var pad = 26;
+    var allVals = seriesA.concat(seriesB).filter(function(v){return v!=null;});
+    var max = Math.max.apply(null, allVals.length?allVals:[1]);
+    max = max<=0?1:max*1.15;
+    var n = labels.length;
+    function x(i){ return pad + (i*(w-pad-8))/Math.max(n-1,1); }
+    function y(v){ return h-pad + 0 - ((v/max)*(h-pad-10)); }
+    function pathFor(series){
+      var pts = [];
+      for(var i=0;i<series.length;i++){
+        if(series[i]==null) continue;
+        pts.push(x(i)+","+y(series[i]));
+      }
+      return "M"+pts.join(" L");
+    }
+    var gridLines = "";
+    for(var g=0; g<=3; g++){
+      var gy = pad + g*((h-pad-10)/3);
+      gridLines += '<line x1="'+pad+'" y1="'+gy+'" x2="'+w+'" y2="'+gy+'" stroke="#23262c" stroke-width="1"/>';
+    }
+    var pathA = seriesA.length ? '<path d="'+pathFor(seriesA)+'" fill="none" stroke="'+colorA+'" stroke-width="2"/>' : "";
+    var pathB = seriesB.length ? '<path d="'+pathFor(seriesB)+'" fill="none" stroke="'+colorB+'" stroke-width="2" stroke-dasharray="4,3"/>' : "";
+    var dotsA = seriesA.map(function(v,i){ return v==null?"":'<circle cx="'+x(i)+'" cy="'+y(v)+'" r="2.4" fill="'+colorA+'"/>'; }).join("");
+    var lastLbl = n>0 ? '<text x="'+pad+'" y="'+(h-6)+'" fill="#5f636b" font-size="9">'+labels[0]+'</text><text x="'+(w-30)+'" y="'+(h-6)+'" fill="#5f636b" font-size="9">'+labels[n-1]+'</text>' : "";
+    return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;">'+gridLines+pathA+dotsA+pathB+lastLbl+'</svg>';
+  }
+  function barChart(values, labels, color, w, h, unit){
+    w = w||300; h = h||140;
+    var pad = 8, bottom=18;
+    var max = Math.max.apply(null, values.length?values:[1]); max = max<=0?1:max*1.15;
+    var n = values.length;
+    var bw = (w-pad*2)/Math.max(n,1)*0.7;
+    var gap = (w-pad*2)/Math.max(n,1);
+    var bars = "";
+    for(var i=0;i<n;i++){
+      var bh = ((values[i]||0)/max)*(h-bottom-8);
+      var bx = pad + i*gap + (gap-bw)/2;
+      var by = h-bottom-bh;
+      bars += '<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="2" fill="'+color+'"/>';
+    }
+    var lastLbl = n>0 ? '<text x="'+pad+'" y="'+(h-4)+'" fill="#5f636b" font-size="9">'+labels[0]+'</text><text x="'+(w-30)+'" y="'+(h-4)+'" fill="#5f636b" font-size="9">'+labels[n-1]+'</text>' : "";
+    return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;">'+bars+lastLbl+'</svg>';
+  }
+
+  /* ---------------- STATUS PILL HELPER ---------------- */
+  function pill(el, level, text){
+    el.className = "statuspill st-"+level;
+    el.textContent = text;
+    var dot = document.getElementById("dot-"+el.id.replace("Status","").toLowerCase());
+    if(dot){ dot.style.background = level==="green"?"var(--green)":level==="amber"?"var(--amber)":"var(--red)"; }
+  }
+
+  /* ================= SHAPE ================= */
+  function sortedShapeDates(){
+    return Object.keys(state.shape.logs).sort();
+  }
+  function renderShape(){
+    document.getElementById("shape-done").checked = !!state.shape.done;
+    var dateInput = document.getElementById("s-date");
+    if(!dateInput.value) dateInput.value = todayISO();
+
+    var dates = sortedShapeDates();
+    var last14 = dates.slice(-14);
+
+    // week dots (Mon-Sun current week)
+    var ws = startOfWeek(new Date());
+    var wrap = document.getElementById("gymWeekDots"); wrap.innerHTML="";
+    var gymCount = 0;
+    var todayIso = todayISO();
+    for(var i=0;i<7;i++){
+      var d = addDays(ws,i);
+      var iso = toISO(d);
+      var log = state.shape.logs[iso];
+      var hit = log && log.gym;
+      if(hit) gymCount++;
+      var div = document.createElement("div");
+      div.className = "wd"+(hit?" hit":"")+(iso===todayIso?" today":"");
+      div.textContent = ["M","T","W","T","F","S","S"][i];
+      wrap.appendChild(div);
+    }
+    document.getElementById("gymWeekHint").textContent = gymCount+" / 5 gym days this week"+(gymCount>=5?" — target hit!":gymCount>=3?" — keep pushing":" — behind pace");
+    if(state.shape.done){ pill(document.getElementById("shapeStatus"), "green", "Done"); }
+    else{ pill(document.getElementById("shapeStatus"), gymCount>=5?"green":gymCount>=3?"amber":"red", gymCount+"/5 gym days"); }
+
+    // weekly steps target
+    var target = Number(state.shape.stepsTarget)||0;
+    document.getElementById("s-stepstarget").value = target || "";
+    var weekStepsTotal = 0;
+    for(var wi=0; wi<7; wi++){
+      var wIso = toISO(addDays(ws,wi));
+      var wLog = state.shape.logs[wIso];
+      if(wLog && wLog.steps!=null) weekStepsTotal += Number(wLog.steps);
+    }
+    var stepsPct = target>0 ? Math.min(Math.round((weekStepsTotal/target)*100),100) : 0;
+    document.getElementById("stepsWeekTotal").textContent = weekStepsTotal.toLocaleString();
+    document.getElementById("stepsWeekPct").textContent = stepsPct+"%";
+    document.getElementById("stepsProgress").style.width = stepsPct+"%";
+    document.getElementById("stepsHint").textContent = target>0
+      ? (stepsPct>=100 ? "Weekly step target hit!" : (target-weekStepsTotal).toLocaleString()+" steps left to hit your target this week")
+      : "Set a weekly steps target above to start tracking.";
+
+    // charts
+    var cals = last14.map(function(dt){ return state.shape.logs[dt].cal!=null? Number(state.shape.logs[dt].cal): null; });
+    var prot = last14.map(function(dt){ return state.shape.logs[dt].protein!=null? Number(state.shape.logs[dt].protein): null; });
+    var steps = last14.map(function(dt){ return Number(state.shape.logs[dt].steps)||0; });
+    var labels = last14.map(fmtShort);
+    document.getElementById("shapeLineChart").innerHTML = last14.length ? (
+      lineChart(cals, prot, labels, "#ff4433", "#ffb020") +
+      '<div style="display:flex;gap:14px;font-size:10.5px;color:var(--muted);margin-top:4px;"><span><span style="color:#ff4433;">●</span> Calories</span><span><span style="color:#ffb020;">●</span> Protein (g)</span></div>'
+    ) : '<div class="empty">Log a few days to see your trend.</div>';
+    document.getElementById("shapeStepsChart").innerHTML = last14.length ? barChart(steps, labels, "#34d399") : '<div class="empty">No step data yet.</div>';
+
+    // table
+    var tbody = document.querySelector("#shapeTable tbody"); tbody.innerHTML = "";
+    var rev = dates.slice().reverse();
+    if(!rev.length){ tbody.innerHTML = '<tr><td colspan="6" class="empty">No entries yet.</td></tr>'; }
+    rev.forEach(function(dt){
+      var log = state.shape.logs[dt];
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>'+fmtShort(dt)+'</td><td>'+(log.gym?"✅":"—")+'</td><td>'+(log.cal!=null?log.cal:"—")+'</td><td>'+(log.protein!=null?log.protein:"—")+'</td><td>'+(log.steps!=null?log.steps:"—")+'</td><td><button class="delbtn" data-del="'+dt+'">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click", function(){ delete state.shape.logs[b.dataset.del]; save(); renderShape(); renderOverview(); });
+    });
+  }
+  document.getElementById("s-savetarget").addEventListener("click", function(){
+    state.shape.stepsTarget = Number(document.getElementById("s-stepstarget").value)||0;
+    save(); renderShape();
+  });
+  document.getElementById("s-gym").addEventListener("change", function(){
+    document.getElementById("s-gym-lab").textContent = this.checked ? "Yes" : "No";
+  });
+  document.getElementById("s-add").addEventListener("click", function(){
+    var dt = document.getElementById("s-date").value || todayISO();
+    var gym = document.getElementById("s-gym").checked;
+    var cal = document.getElementById("s-cal").value;
+    var protein = document.getElementById("s-protein").value;
+    var steps = document.getElementById("s-steps").value;
+    state.shape.logs[dt] = {
+      gym: gym,
+      cal: cal===""?null:Number(cal),
+      protein: protein===""?null:Number(protein),
+      steps: steps===""?null:Number(steps)
+    };
+    save();
+    document.getElementById("s-cal").value="";
+    document.getElementById("s-protein").value="";
+    document.getElementById("s-steps").value="";
+    document.getElementById("s-gym").checked=false;
+    document.getElementById("s-gym-lab").textContent="No";
+    renderShape(); renderOverview();
+  });
+
+  /* ================= MODEL ================= */
+  function renderModel(){
+    document.getElementById("model-done").checked = !!state.model.done;
+    var dateInput = document.getElementById("m-date");
+    if(!dateInput.value) dateInput.value = todayISO();
+
+    var posts = state.model.posts.slice().sort(function(a,b){ return a.date<b.date?-1:1; });
+    var ws = startOfWeek(new Date());
+    var weekCount = posts.filter(function(p){ return inSameWeek(p.date, ws); }).length;
+    document.getElementById("modelWeekCount").textContent = weekCount+" / 2";
+    var daysLeftInWeek = 7 - (Math.floor((new Date() - ws)/86400000)+1);
+    document.getElementById("modelWeekLeft").textContent = Math.max(daysLeftInWeek,0);
+    if(state.model.done){ pill(document.getElementById("modelStatus"), "green", "Done"); }
+    else{ pill(document.getElementById("modelStatus"), weekCount>=2?"green":weekCount>=1?"amber":"red", weekCount+"/2 this week"); }
+
+    // last 8 weeks bars
+    var barsWrap = document.getElementById("modelWeekBars"); barsWrap.innerHTML="";
+    for(var i=7;i>=0;i--){
+      var wStart = addDays(ws, -7*i);
+      var wLabel = wStart.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+      var count = posts.filter(function(p){ return inSameWeek(p.date, wStart); }).length;
+      var pct = Math.min((count/2)*100,100);
+      var color = count>=2 ? "#34d399" : count>=1 ? "#ffb020" : "#ff4433";
+      var row = document.createElement("div");
+      row.className = "bar-row";
+      row.innerHTML = '<div class="lbl">'+wLabel+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div><div class="val">'+count+'/2</div>';
+      barsWrap.appendChild(row);
+    }
+
+    var tbody = document.querySelector("#modelTable tbody"); tbody.innerHTML="";
+    var rev = posts.slice().reverse();
+    if(!rev.length){ tbody.innerHTML = '<tr><td colspan="3" class="empty">No posts logged yet.</td></tr>'; }
+    rev.forEach(function(p){
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>'+fmtShort(p.date)+'</td><td style="font-family:var(--font);">'+(p.note?escapeHtml(p.note):"—")+'</td><td><button class="delbtn" data-del="'+p.id+'">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click", function(){
+        state.model.posts = state.model.posts.filter(function(p){ return p.id!==b.dataset.del; });
+        save(); renderModel(); renderOverview();
+      });
+    });
+  }
+  function escapeHtml(s){ var d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+  document.getElementById("m-add").addEventListener("click", function(){
+    var dt = document.getElementById("m-date").value || todayISO();
+    var note = document.getElementById("m-note").value.trim();
+    state.model.posts.push({id:uid(), date:dt, note:note});
+    save();
+    document.getElementById("m-note").value="";
+    renderModel(); renderOverview();
+  });
+
+  /* ================= SWIM ================= */
+  function renderSwim(){
+    document.getElementById("swim-done").checked = !!state.swim.done;
+    document.getElementById("sw-active").checked = !!state.swim.active;
+    document.getElementById("sw-active-lab").textContent = state.swim.active ? "Membership active" : "Membership not taken yet";
+    document.getElementById("swimDateWrap").style.display = state.swim.active ? "block":"none";
+    if(state.swim.startDate) document.getElementById("sw-date").value = state.swim.startDate;
+
+    var cdate = document.getElementById("sw-classdate");
+    if(!cdate.value) cdate.value = todayISO();
+
+    var classes = state.swim.classes.slice().sort(function(a,b){ return a.date<b.date?-1:1; });
+    document.getElementById("swimTotal").textContent = classes.length;
+    var ws = startOfWeek(new Date());
+    var wk = classes.filter(function(c){ return inSameWeek(c.date, ws); }).length;
+    document.getElementById("swimWeek").textContent = wk;
+
+    if(state.swim.done){ pill(document.getElementById("swimStatus"), "green", "Done"); }
+    else{
+      var level = state.swim.active ? (wk>=1?"green":"amber") : "red";
+      var label = state.swim.active ? (wk>=1?"On track":"No class this week") : "Membership pending";
+      pill(document.getElementById("swimStatus"), level, label);
+    }
+
+    var tbody = document.querySelector("#swimTable tbody"); tbody.innerHTML="";
+    var rev = classes.slice().reverse();
+    if(!rev.length){ tbody.innerHTML = '<tr><td colspan="2" class="empty">No classes logged yet.</td></tr>'; }
+    rev.forEach(function(c){
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>'+fmtShort(c.date)+'</td><td><button class="delbtn" data-del="'+c.id+'">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click", function(){
+        state.swim.classes = state.swim.classes.filter(function(c){ return c.id!==b.dataset.del; });
+        save(); renderSwim(); renderOverview();
+      });
+    });
+  }
+  document.getElementById("sw-active").addEventListener("change", function(){
+    state.swim.active = this.checked;
+    if(this.checked && !state.swim.startDate){ state.swim.startDate = todayISO(); }
+    save(); renderSwim(); renderOverview();
+  });
+  document.getElementById("sw-date").addEventListener("change", function(){
+    state.swim.startDate = this.value; save(); renderOverview();
+  });
+  document.getElementById("sw-add").addEventListener("click", function(){
+    var dt = document.getElementById("sw-classdate").value || todayISO();
+    state.swim.classes.push({id:uid(), date:dt});
+    save(); renderSwim(); renderOverview();
+  });
+
+  /* ================= BED ================= */
+  function renderBed(){
+    document.getElementById("bed-done").checked = !!state.bed.done;
+    document.getElementById("b-total").value = state.bed.total || "";
+    document.getElementById("b-emi").checked = !!state.bed.emi;
+    document.getElementById("b-emi-lab").textContent = state.bed.emi ? "Paying via EMI" : "Paying upfront (no EMI)";
+    document.getElementById("b-paylabel").textContent = state.bed.emi ? "Log an EMI payment" : "Log a payment";
+
+    var bdate = document.getElementById("b-date");
+    if(!bdate.value) bdate.value = todayISO();
+
+    var paid = state.bed.payments.reduce(function(s,p){ return s+Number(p.amount||0); },0);
+    var total = Number(state.bed.total||0);
+    var left = Math.max(total-paid,0);
+    var pct = total>0 ? Math.min(Math.round((paid/total)*100),100) : 0;
+
+    document.getElementById("bedTotal").textContent = "₹"+total.toLocaleString();
+    document.getElementById("bedPaid").textContent = "₹"+paid.toLocaleString();
+    document.getElementById("bedLeft").textContent = "₹"+left.toLocaleString();
+    document.getElementById("bedProgress").style.width = pct+"%";
+    document.getElementById("bedProgressLab").textContent = pct+"% paid off"+(total===0?" — set total cost first":"");
+    if(state.bed.done){ pill(document.getElementById("bedStatus"), "green", "Done"); }
+    else{ pill(document.getElementById("bedStatus"), pct>=100?"green":pct>=40?"amber":"red", total===0?"Set total":pct+"% paid"); }
+
+    var payments = state.bed.payments.slice().sort(function(a,b){ return a.date<b.date?-1:1; }).reverse();
+    var tbody = document.querySelector("#bedTable tbody"); tbody.innerHTML="";
+    if(!payments.length){ tbody.innerHTML = '<tr><td colspan="3" class="empty">No payments logged yet.</td></tr>'; }
+    payments.forEach(function(p){
+      var tr = document.createElement("tr");
+      tr.innerHTML = '<td>'+fmtShort(p.date)+'</td><td>₹'+Number(p.amount).toLocaleString()+'</td><td><button class="delbtn" data-del="'+p.id+'">✕</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll("[data-del]").forEach(function(b){
+      b.addEventListener("click", function(){
+        state.bed.payments = state.bed.payments.filter(function(p){ return p.id!==b.dataset.del; });
+        save(); renderBed(); renderOverview();
+      });
+    });
+  }
+  document.getElementById("b-savetotal").addEventListener("click", function(){
+    state.bed.total = Number(document.getElementById("b-total").value)||0;
+    save(); renderBed(); renderOverview();
+  });
+  document.getElementById("b-emi").addEventListener("change", function(){
+    state.bed.emi = this.checked; save(); renderBed();
+  });
+  document.getElementById("b-add").addEventListener("click", function(){
+    var dt = document.getElementById("b-date").value || todayISO();
+    var amt = Number(document.getElementById("b-amount").value)||0;
+    if(amt<=0) return;
+    state.bed.payments.push({id:uid(), date:dt, amount:amt});
+    save();
+    document.getElementById("b-amount").value="";
+    renderBed(); renderOverview();
+  });
+
+  /* ================= OVERVIEW ================= */
+  function computePercents(){
+    // Shape: based on this week's gym days (0-5) blended with having any logs
+    var ws = startOfWeek(new Date());
+    var gymDays = 0;
+    for(var i=0;i<7;i++){
+      var iso = toISO(addDays(ws,i));
+      if(state.shape.logs[iso] && state.shape.logs[iso].gym) gymDays++;
+    }
+    var shapePct = Math.min(Math.round((gymDays/5)*100),100);
+
+    var posts = state.model.posts;
+    var weekCount = posts.filter(function(p){ return inSameWeek(p.date, ws); }).length;
+    var modelPct = Math.min(Math.round((weekCount/2)*100),100);
+
+    var swimPct = 0;
+    if(state.swim.active) swimPct += 50;
+    var totalClasses = state.swim.classes.length;
+    swimPct += Math.min(totalClasses*5,50);
+    swimPct = Math.min(swimPct,100);
+
+    var paid = state.bed.payments.reduce(function(s,p){ return s+Number(p.amount||0); },0);
+    var total = Number(state.bed.total||0);
+    var bedPct = total>0 ? Math.min(Math.round((paid/total)*100),100) : 0;
+
+    return {shape:shapePct, model:modelPct, swim:swimPct, bed:bedPct};
+  }
+  function renderOverview(){
+    var p = computePercents();
+    var wrap = document.getElementById("overviewRings"); wrap.innerHTML="";
+    var items = [
+      {name:"Get In Shape", pct:p.shape, done:state.shape.done},
+      {name:"Modelling", pct:p.model, done:state.model.done},
+      {name:"Swim Lessons", pct:p.swim, done:state.swim.done},
+      {name:"Buy The Bed", pct:p.bed, done:state.bed.done}
+    ];
+    items.forEach(function(it){
+      var pct = it.done ? 100 : it.pct;
+      var color = it.done ? "#34d399" : (pct>=100?"#34d399":pct>=40?"#ffb020":"#ff4433");
+      var card = document.createElement("div");
+      card.className = "ring-card";
+      card.innerHTML = '<div class="pct" style="color:'+color+';">'+(it.done?"✓":pct+"%")+'</div><div class="nm">'+it.name+'</div>';
+      wrap.appendChild(card);
+    });
+
+    // completed goals join the crossed-off strip alongside Hair/Gold/Travel
+    var stripExtra = document.getElementById("visionStripExtra");
+    stripExtra.innerHTML = items.filter(function(it){ return it.done; }).map(function(it){
+      return '<div class="vchip">✓ '+it.name+'</div>';
+    }).join("");
+
+    var ws = startOfWeek(new Date());
+    var gymDays = 0;
+    for(var i=0;i<7;i++){ var iso=toISO(addDays(ws,i)); if(state.shape.logs[iso]&&state.shape.logs[iso].gym) gymDays++; }
+    var postsWk = state.model.posts.filter(function(pp){ return inSameWeek(pp.date, ws); }).length;
+    var swimWk = state.swim.classes.filter(function(c){ return inSameWeek(c.date, ws); }).length;
+    var paid = state.bed.payments.reduce(function(s,pp){ return s+Number(pp.amount||0); },0);
+    var total = Number(state.bed.total||0);
+
+    var wk = document.getElementById("overviewWeek");
+    wk.innerHTML =
+      '<div class="stat"><div class="v">'+gymDays+'/5</div><div class="l">Gym days</div></div>'+
+      '<div class="stat"><div class="v">'+postsWk+'/2</div><div class="l">Insta posts</div></div>'+
+      '<div class="stat"><div class="v">'+swimWk+'</div><div class="l">Swim classes</div></div>'+
+      '<div class="stat"><div class="v">'+(total>0?Math.round((paid/total)*100)+"%":"—")+'</div><div class="l">Bed paid</div></div>';
+  }
+
+  /* ---------------- MARK DONE CHECKBOXES ---------------- */
+  document.getElementById("shape-done").addEventListener("change", function(){ state.shape.done=this.checked; save(); renderShape(); renderOverview(); });
+  document.getElementById("model-done").addEventListener("change", function(){ state.model.done=this.checked; save(); renderModel(); renderOverview(); });
+  document.getElementById("swim-done").addEventListener("change", function(){ state.swim.done=this.checked; save(); renderSwim(); renderOverview(); });
+  document.getElementById("bed-done").addEventListener("change", function(){ state.bed.done=this.checked; save(); renderBed(); renderOverview(); });
+
+  /* ---------------- BACKUP / RESTORE ---------------- */
+  document.getElementById("btnExport").addEventListener("click", function(){
+    var area = document.getElementById("backupArea");
+    area.style.display = "block";
+    area.value = JSON.stringify(state);
+    area.focus(); area.select();
+  });
+  document.getElementById("btnImport").addEventListener("click", function(){
+    var area = document.getElementById("backupArea");
+    if(area.style.display !== "block"){ area.style.display="block"; area.value=""; area.focus(); return; }
+    try{
+      var parsed = JSON.parse(area.value);
+      state = Object.assign(defaultState(), parsed);
+      save(); renderAll();
+      alert("Data restored.");
+    }catch(e){ alert("That code couldn't be read. Check it and try again."); }
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    if(confirm("This clears every logged entry on this device. Continue?")){
+      state = defaultState(); save(); renderAll();
+    }
+  });
+
+  /* ---------------- INIT ---------------- */
+  function renderAll(){
+    renderShape(); renderModel(); renderSwim(); renderBed(); renderOverview();
+  }
+  renderAll();
+
+})();
+
+if("serviceWorker" in navigator && (location.protocol==="https:" || location.protocol==="http:")){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
